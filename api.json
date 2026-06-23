@@ -1,0 +1,19 @@
+{
+  "matches": [
+    {
+      "title": "Manchester City vs Arsenal",
+      "subtitle": "Live Streaming - Multi Server",
+      "image": "https://yeamin.com/images/mancity_arsenal.png",
+      "streams": [
+        {
+          "name": "Server 1",
+          "url": "https://example.com/live/server1.m3u8"
+        },
+        {
+          "name": "Server 2",
+          "url": "https://example.com/live/server2.m3u8"
+        }
+      ]
+    }
+  ]
+}
