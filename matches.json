@@ -1,0 +1,13 @@
+{
+  "matches": [
+    {
+      "id": "1",
+      "sport": "football",
+      "league": "LaLiga",
+      "team1": "Barcelona",
+      "team2": "Real Madrid",
+      "status": "live",
+      "time": "LIVE"
+    }
+  ]
+}
