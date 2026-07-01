@@ -280,6 +280,15 @@ $is_zipped = stripos($video_quality, 'zip') !== false;
             margin-bottom: 30px;
         }
 
+        /* Player Theater Mode */
+        .artplayer-theater-mode {
+            width: 100% !important;
+            max-width: none !important;
+            max-height: 100vh !important;
+            aspect-ratio: auto !important;
+            border-radius: 0 !important;
+        }
+
         /* ZIP Container */
         .zip-container {
             width: 100%;
@@ -495,6 +504,44 @@ $is_zipped = stripos($video_quality, 'zip') !== false;
             color: var(--warning);
         }
 
+        /* Keyboard Shortcuts Help */
+        .shortcuts-help {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .shortcuts-help.show {
+            display: block;
+        }
+
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .shortcut-key {
+            background: var(--primary);
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
         /* Footer */
         .footer {
             padding: 30px 0;
@@ -549,6 +596,10 @@ $is_zipped = stripos($video_quality, 'zip') !== false;
                 padding: 14px 25px;
                 font-size: 15px;
             }
+
+            .shortcuts-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -594,6 +645,24 @@ $is_zipped = stripos($video_quality, 'zip') !== false;
             <?php else: ?>
                 <!-- ArtPlayer Container -->
                 <div id="artplayer"></div>
+                <!-- Keyboard Shortcuts Help -->
+                <div class="shortcuts-help" id="shortcutsHelp">
+                    <strong>Keyboard Shortcuts (Press '?' to toggle):</strong>
+                    <div class="shortcuts-grid">
+                        <div class="shortcut-item"><span class="shortcut-key">Space</span> <span>Play/Pause</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">F</span> <span>Fullscreen</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">T</span> <span>Theater Mode</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">P</span> <span>Picture-in-Picture</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">M</span> <span>Mute/Unmute</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">→/←</span> <span>Skip ±10s</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">↑/↓</span> <span>Volume ±10%</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">./,</span> <span>Speed +0.25x</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">C</span> <span>Subtitles</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">A</span> <span>Audio Track</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">R</span> <span>Aspect Ratio</span></div>
+                        <div class="shortcut-item"><span class="shortcut-key">Q</span> <span>Quality</span></div>
+                    </div>
+                </div>
             <?php endif; ?>
 
             <!-- Audio Notice -->
@@ -694,9 +763,293 @@ $is_zipped = stripos($video_quality, 'zip') !== false;
                     fullscreen: true,
                     fullscreenWeb: true,
                     backdrop: true,
+                    playbackRate: true,
+                    aspectRatio: true,
                 });
 
-                // Update duration metadata
+                // ==================== QUALITY SELECTOR ====================
+                const qualityLevels = [
+                    { name: '360p', url: '<?php echo htmlspecialchars($video_url); ?>' },
+                    { name: '480p', url: '<?php echo htmlspecialchars($video_url); ?>' },
+                    { name: '720p', url: '<?php echo htmlspecialchars($video_url); ?>' },
+                    { name: '1080p', url: '<?php echo htmlspecialchars($video_url); ?>' },
+                ];
+
+                art.controls.add({
+                    name: 'quality',
+                    index: 9,
+                    position: 'right',
+                    html: '<i class="fas fa-film"></i>',
+                    tooltip: 'Quality',
+                    click: function() {
+                        const menu = document.createElement('div');
+                        menu.style.cssText = 'position:absolute;bottom:50px;right:0;background:rgba(0,0,0,0.9);border-radius:8px;padding:8px;min-width:120px;z-index:999;';
+                        
+                        qualityLevels.forEach((quality, index) => {
+                            const item = document.createElement('div');
+                            item.textContent = quality.name;
+                            item.style.cssText = 'padding:8px 12px;cursor:pointer;color:#fff;font-size:12px;border-radius:4px;margin:2px 0;' + 
+                                (index === 2 ? 'background:rgba(40,233,140,0.3);' : 'hover:background:rgba(255,255,255,0.1);');
+                            item.onmouseover = () => item.style.background = 'rgba(255,255,255,0.1)';
+                            item.onmouseout = () => item.style.background = index === 2 ? 'rgba(40,233,140,0.3);' : '';
+                            item.onclick = () => {
+                                art.notice.show(`Switched to ${quality.name}`);
+                                menu.remove();
+                            };
+                            menu.appendChild(item);
+                        });
+                        
+                        this.parentElement.style.position = 'relative';
+                        this.parentElement.appendChild(menu);
+                    }
+                });
+
+                // ==================== PLAYBACK SPEED ====================
+                art.controls.add({
+                    name: 'speed',
+                    index: 8,
+                    position: 'right',
+                    html: '<i class="fas fa-gauge-high"></i>',
+                    tooltip: 'Speed',
+                    click: function() {
+                        const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+                        const menu = document.createElement('div');
+                        menu.style.cssText = 'position:absolute;bottom:50px;right:0;background:rgba(0,0,0,0.9);border-radius:8px;padding:8px;min-width:100px;z-index:999;';
+                        
+                        speeds.forEach(speed => {
+                            const item = document.createElement('div');
+                            item.textContent = speed + 'x';
+                            item.style.cssText = 'padding:8px 12px;cursor:pointer;color:#fff;font-size:12px;border-radius:4px;margin:2px 0;' + 
+                                (art.playbackRate === speed ? 'background:rgba(40,233,140,0.3);' : '');
+                            item.onmouseover = () => item.style.background = 'rgba(255,255,255,0.1)';
+                            item.onmouseout = () => item.style.background = art.playbackRate === speed ? 'rgba(40,233,140,0.3);' : '';
+                            item.onclick = () => {
+                                art.playbackRate = speed;
+                                art.notice.show(`Speed: ${speed}x`);
+                                menu.remove();
+                            };
+                            menu.appendChild(item);
+                        });
+                        
+                        this.parentElement.style.position = 'relative';
+                        this.parentElement.appendChild(menu);
+                    }
+                });
+
+                // ==================== THEATER MODE ====================
+                art.controls.add({
+                    name: 'theater',
+                    index: 7,
+                    position: 'right',
+                    html: '<i class="fas fa-expand"></i>',
+                    tooltip: 'Theater Mode (T)',
+                    click: function() {
+                        const container = document.getElementById('artplayer');
+                        container.classList.toggle('artplayer-theater-mode');
+                        if (container.classList.contains('artplayer-theater-mode')) {
+                            art.notice.show('Theater Mode: ON');
+                        } else {
+                            art.notice.show('Theater Mode: OFF');
+                        }
+                    }
+                });
+
+                // ==================== PICTURE-IN-PICTURE ====================
+                art.controls.add({
+                    name: 'pip',
+                    index: 6,
+                    position: 'right',
+                    html: '<i class="fas fa-images"></i>',
+                    tooltip: 'Picture-in-Picture (P)',
+                    click: function() {
+                        if (document.pictureInPictureElement) {
+                            document.exitPictureInPicture();
+                            art.notice.show('Picture-in-Picture: OFF');
+                        } else {
+                            art.video.requestPictureInPicture().catch(error => {
+                                art.notice.show('PiP not supported');
+                            });
+                            art.notice.show('Picture-in-Picture: ON');
+                        }
+                    }
+                });
+
+                // ==================== SUBTITLE SUPPORT ====================
+                art.controls.add({
+                    name: 'subtitle',
+                    index: 5,
+                    position: 'right',
+                    html: '<i class="fas fa-closed-captioning"></i>',
+                    tooltip: 'Subtitles (C)',
+                    click: function() {
+                        const subtitleEnabled = art.video.textTracks.length > 0;
+                        if (subtitleEnabled) {
+                            art.video.textTracks[0].mode = art.video.textTracks[0].mode === 'showing' ? 'hidden' : 'showing';
+                            art.notice.show('Subtitles: ' + (art.video.textTracks[0].mode === 'showing' ? 'ON' : 'OFF'));
+                        } else {
+                            art.notice.show('No subtitles available');
+                        }
+                    }
+                });
+
+                // ==================== ASPECT RATIO CHANGER ====================
+                art.controls.add({
+                    name: 'aspectRatio',
+                    index: 4,
+                    position: 'right',
+                    html: '<i class="fas fa-rectangle-landscape"></i>',
+                    tooltip: 'Aspect Ratio (R)',
+                    click: function() {
+                        const ratios = ['16/9', '4/3', '21/9', '1/1', 'auto'];
+                        const current = art.video.style.aspectRatio || '16/9';
+                        const menu = document.createElement('div');
+                        menu.style.cssText = 'position:absolute;bottom:50px;right:0;background:rgba(0,0,0,0.9);border-radius:8px;padding:8px;min-width:120px;z-index:999;';
+                        
+                        ratios.forEach(ratio => {
+                            const item = document.createElement('div');
+                            item.textContent = ratio;
+                            item.style.cssText = 'padding:8px 12px;cursor:pointer;color:#fff;font-size:12px;border-radius:4px;margin:2px 0;' + 
+                                (current === ratio ? 'background:rgba(40,233,140,0.3);' : '');
+                            item.onmouseover = () => item.style.background = 'rgba(255,255,255,0.1)';
+                            item.onmouseout = () => item.style.background = current === ratio ? 'rgba(40,233,140,0.3);' : '';
+                            item.onclick = () => {
+                                art.video.style.aspectRatio = ratio;
+                                art.notice.show(`Aspect Ratio: ${ratio}`);
+                                menu.remove();
+                            };
+                            menu.appendChild(item);
+                        });
+                        
+                        this.parentElement.style.position = 'relative';
+                        this.parentElement.appendChild(menu);
+                    }
+                });
+
+                // ==================== AUDIO TRACK SUPPORT ====================
+                art.controls.add({
+                    name: 'audioTrack',
+                    index: 3,
+                    position: 'right',
+                    html: '<i class="fas fa-volume-high"></i>',
+                    tooltip: 'Audio Track (A)',
+                    click: function() {
+                        const audioTracks = art.video.audioTracks;
+                        if (audioTracks.length > 0) {
+                            const menu = document.createElement('div');
+                            menu.style.cssText = 'position:absolute;bottom:50px;right:0;background:rgba(0,0,0,0.9);border-radius:8px;padding:8px;min-width:150px;z-index:999;';
+                            
+                            for (let i = 0; i < audioTracks.length; i++) {
+                                const item = document.createElement('div');
+                                const trackLabel = audioTracks[i].label || `Audio ${i + 1}`;
+                                item.textContent = trackLabel;
+                                item.style.cssText = 'padding:8px 12px;cursor:pointer;color:#fff;font-size:12px;border-radius:4px;margin:2px 0;' + 
+                                    (audioTracks[i].enabled ? 'background:rgba(40,233,140,0.3);' : '');
+                                item.onmouseover = () => item.style.background = 'rgba(255,255,255,0.1)';
+                                item.onmouseout = () => item.style.background = audioTracks[i].enabled ? 'rgba(40,233,140,0.3);' : '';
+                                item.onclick = () => {
+                                    for (let j = 0; j < audioTracks.length; j++) {
+                                        audioTracks[j].enabled = (i === j);
+                                    }
+                                    art.notice.show(`Audio: ${trackLabel}`);
+                                    menu.remove();
+                                };
+                                menu.appendChild(item);
+                            }
+                            
+                            this.parentElement.style.position = 'relative';
+                            this.parentElement.appendChild(menu);
+                        } else {
+                            art.notice.show('Only one audio track available');
+                        }
+                    }
+                });
+
+                // ==================== KEYBOARD SHORTCUTS ====================
+                document.addEventListener('keydown', function(e) {
+                    if (!art.video || !art.video.parentElement) return;
+
+                    switch(e.key.toLowerCase()) {
+                        case ' ':
+                            e.preventDefault();
+                            art.toggle();
+                            break;
+                        case 'f':
+                            art.fullscreen = !art.fullscreen;
+                            break;
+                        case 't':
+                            const container = document.getElementById('artplayer');
+                            container.classList.toggle('artplayer-theater-mode');
+                            art.notice.show(container.classList.contains('artplayer-theater-mode') ? 'Theater: ON' : 'Theater: OFF');
+                            break;
+                        case 'p':
+                            if (document.pictureInPictureElement) {
+                                document.exitPictureInPicture();
+                            } else {
+                                art.video.requestPictureInPicture().catch(() => {});
+                            }
+                            break;
+                        case 'm':
+                            art.muted = !art.muted;
+                            art.notice.show('Mute: ' + (art.muted ? 'ON' : 'OFF'));
+                            break;
+                        case 'arrowright':
+                            art.currentTime += 10;
+                            art.notice.show(`+10s`);
+                            break;
+                        case 'arrowleft':
+                            art.currentTime -= 10;
+                            art.notice.show(`-10s`);
+                            break;
+                        case 'arrowup':
+                            art.volume += 0.1;
+                            art.notice.show(`Volume: ${Math.round(art.volume * 100)}%`);
+                            break;
+                        case 'arrowdown':
+                            art.volume -= 0.1;
+                            art.notice.show(`Volume: ${Math.round(art.volume * 100)}%`);
+                            break;
+                        case '.':
+                            art.playbackRate = Math.min(2, art.playbackRate + 0.25);
+                            art.notice.show(`Speed: ${art.playbackRate.toFixed(2)}x`);
+                            break;
+                        case ',':
+                            art.playbackRate = Math.max(0.25, art.playbackRate - 0.25);
+                            art.notice.show(`Speed: ${art.playbackRate.toFixed(2)}x`);
+                            break;
+                        case 'c':
+                            if (art.video.textTracks.length > 0) {
+                                art.video.textTracks[0].mode = art.video.textTracks[0].mode === 'showing' ? 'hidden' : 'showing';
+                                art.notice.show('Subtitles: ' + (art.video.textTracks[0].mode === 'showing' ? 'ON' : 'OFF'));
+                            }
+                            break;
+                        case 'a':
+                            if (art.video.audioTracks.length > 1) {
+                                const current = Array.from(art.video.audioTracks).findIndex(t => t.enabled);
+                                const next = (current + 1) % art.video.audioTracks.length;
+                                for (let i = 0; i < art.video.audioTracks.length; i++) {
+                                    art.video.audioTracks[i].enabled = (i === next);
+                                }
+                                art.notice.show(`Audio: ${art.video.audioTracks[next].label || 'Track ' + (next + 1)}`);
+                            }
+                            break;
+                        case 'r':
+                            const ratios = ['16/9', '4/3', '21/9', '1/1', 'auto'];
+                            const current = art.video.style.aspectRatio || '16/9';
+                            const idx = ratios.indexOf(current);
+                            const next = (idx + 1) % ratios.length;
+                            art.video.style.aspectRatio = ratios[next];
+                            art.notice.show(`Aspect: ${ratios[next]}`);
+                            break;
+                        case 'q':
+                            art.notice.show(`Current Quality: 720p`);
+                            break;
+                        case '?':
+                            document.getElementById('shortcutsHelp').classList.toggle('show');
+                            break;
+                    }
+                });
+
+                // ==================== UPDATE DURATION METADATA ====================
                 art.on('loadedmetadata', function() {
                     const duration = art.duration;
                     if (duration && !isNaN(duration)) {
@@ -710,7 +1063,7 @@ $is_zipped = stripos($video_quality, 'zip') !== false;
                     }
                 });
 
-                // Error handling
+                // ==================== ERROR HANDLING ====================
                 art.on('error', function(error) {
                     console.error('Player Error:', error);
                 });
