@@ -697,7 +697,9 @@ $is_zipped = stripos($video_quality, 'zip') !== false;
                     playbackRate: true,
                     aspectRatio: true,
                     screenshot: true,
-                    setting: true,
+                    subtitle: {
+                        url: ''
+                    },
                 });
 
                 // Update duration metadata
