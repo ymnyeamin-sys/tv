@@ -694,26 +694,10 @@ $is_zipped = stripos($video_quality, 'zip') !== false;
                     fullscreen: true,
                     fullscreenWeb: true,
                     backdrop: true,
-                    playbackRate: [0.5, 0.75, 1, 1.25, 1.5, 2],
+                    playbackRate: true,
                     aspectRatio: true,
-                    subtitle: {
-                        url: '',
-                        encoding: 'utf-8'
-                    },
-                    settings: [
-                        {
-                            html: 'Quality',
-                            icon: '<i class="fas fa-film"></i>',
-                            tooltip: 'Quality',
-                            children: [
-                                {
-                                    default: true,
-                                    html: '720p',
-                                    url: '<?php echo htmlspecialchars($video_url); ?>',
-                                }
-                            ]
-                        }
-                    ]
+                    screenshot: true,
+                    setting: true,
                 });
 
                 // Update duration metadata
